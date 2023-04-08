@@ -8,7 +8,6 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -22,7 +21,7 @@ class MyApp extends StatelessWidget {
         "Login": (context) => SafeArea(child: Login()),
         "Main": (context) => SafeArea(child: MainP())
       },
-      home: SafeArea(child: MainP()),
+      home: SafeArea(child: Welcome()),
     );
   }
 }

@@ -17,14 +17,14 @@ class _SignUpFormState extends State<SignUpForm> {
 
   signUp() async {
     final response = await http.post(
-      Uri.parse('https://call-db-aayu.herokuapp.com/api/appuser/signup'),
+      Uri.parse('http://128.199.21.216:9191/api/appuser/signup'),
       headers: {
         "Content-Type": "application/json",
       },
       body: jsonEncode(
           {"phone": _phone, "username": _username, "password": _password}),
     );
-    print(response.body);
+    print("xxx" + response.body);
     if (response.statusCode == 200) {
       var serverResponse = response.body;
       if (serverResponse != 5000.toString()) {
@@ -132,7 +132,7 @@ class _SignUpFormState extends State<SignUpForm> {
                     color: Colors.lightBlue,
                     borderRadius: BorderRadius.circular(15)),
                 // ignore: deprecated_member_use
-                child: FlatButton(
+                child: TextButton(
                     //check the validator and run the create user function if validates also enable loading
                     onPressed: signUp,
                     //check loading and show progress indicator if true else show signup

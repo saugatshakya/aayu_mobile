@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 class Welcome extends StatelessWidget {
@@ -32,7 +30,7 @@ class Welcome extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10)),
               width: MediaQuery.of(context).size.width - 30,
               // ignore: deprecated_member_use
-              child: FlatButton(
+              child: TextButton(
                   onPressed: () {
                     //go to login screen
                     Navigator.pushNamed(context, "Login");
@@ -44,7 +42,7 @@ class Welcome extends StatelessWidget {
                           color: Colors.white)))),
           SizedBox(height: 10),
           // ignore: deprecated_member_use
-          FlatButton(
+          TextButton(
             onPressed: () {
               //go directly to list of ambulance
               Navigator.popAndPushNamed(context, "Main");

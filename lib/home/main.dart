@@ -1,74 +1,62 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:aayu_mobile/home/emergency.dart';
+import 'package:aayu_mobile/locationservice_state.dart';
+import 'package:aayu_mobile/map_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:geocoder_flutter/geocoder.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geocoder_buddy/geocoder_buddy.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 
 class MainP extends StatefulWidget {
   @override
   _MainPState createState() => _MainPState();
 }
 
-class _MainPState extends State<MainP> {
-  late GoogleMapController _mapController;
-  LatLng? currentPosition;
-  Set<Marker> markers = {};
-  bool showMarker = false;
+class _MainPState extends State<MainP> with TickerProviderStateMixin {
   List hospitals = [];
-  void getCurrentLocation() async {
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    setState(() {
-      currentPosition = LatLng(position.latitude, position.longitude);
-    });
-  }
+  final GoMap mapfnx = GoMap();
+  List markers = [];
+  // void _onMapCreated(GoogleMapController controller) async {
+  //   _mapController = controller;
+  //   _setMapStyle();
+  //   QuerySnapshot snapshot =
+  //       await Firestore.instance.collection('hospital').getDocuments();
+  //   for (int i = 0; i < snapshot.documents.length; i++) {
+  //     var hospitaldata = snapshot.documents[i].data;
+  //     String name = hospitaldata['name'];
+  //     var addresses = await Geocoder.local.findAddressesFromQuery(name);
+  //     var location = addresses.first.coordinates;
+  //     markers.add(Marker(
+  //         onTap: () {
+  //           showDialog(
+  //               context: context,
+  //               builder: (ctxt) =>
+  //                   AlertDialog(title: Text("Dhulikhel Hospital")));
+  //         },
+  //         markerId: MarkerId("01"),
+  //         position:
+  //             LatLng(currentPosition!.latitude, currentPosition!.longitude),
+  //         infoWindow: InfoWindow(
+  //             title: "Dhulikhel Hospital", snippet: "Dhulikhel, Kavre")));
+  //   }
+  //   setState(() {});
+  // }
 
-  void _setMapStyle() async {
-    String style =
-        await DefaultAssetBundle.of(context).loadString('assets/mapstyle.json');
-    _mapController.setMapStyle(style);
-  }
-
-  void _onMapCreated(GoogleMapController controller) async {
-    _mapController = controller;
-    _setMapStyle();
-    // QuerySnapshot snapshot =
-    //     await Firestore.instance.collection('hospital').getDocuments();
-    // for (int i = 0; i < snapshot.documents.length; i++) {
-    //   var hospitaldata = snapshot.documents[i].data;
-    //   String name = hospitaldata['name'];
-    //   var addresses = await Geocoder.local.findAddressesFromQuery(name);
-    //   var location = addresses.first.coordinates;
-    markers.add(Marker(
-        onTap: () {
-          showDialog(
-              context: context,
-              builder: (ctxt) =>
-                  AlertDialog(title: Text("Dhulikhel Hospital")));
-        },
-        markerId: MarkerId("01"),
-        position: LatLng(currentPosition!.latitude, currentPosition!.longitude),
-        infoWindow: InfoWindow(
-            title: "Dhulikhel Hospital", snippet: "Dhulikhel, Kavre")));
-    // }
-    setState(() {});
-  }
-
-  //final AuthService _auth = AuthService();
-  //initialize the pressed with false to show the ambulance page
   String searchAddr = "";
   bool loading = false;
 
   getallhospitals() async {
     final response = await http.get(
-      Uri.parse('https://call-db-aayu.herokuapp.com/api/hospital/list'),
+      Uri.parse('http://128.199.21.216:9191/api/hospital/list'),
       headers: {
         "Content-Type": "application/json",
       },
     );
+
     if (response.statusCode == 200) {
       var serverResponse = response.body;
       hospitals = jsonDecode(serverResponse);
@@ -80,37 +68,41 @@ class _MainPState extends State<MainP> {
   }
 
   getHospitalCorrdinate() async {
+    Position currentPosition = await Geolocator.getCurrentPosition();
+    List newData = [];
     await Future.delayed(Duration(milliseconds: 1000));
+    log(hospitals.length.toString());
     for (int i = 0; i < hospitals.length; i++) {
       try {
         final query = hospitals[i]["hospital_name"];
-        var addresses = await Geocoder.local.findAddressesFromQuery(query);
-        var first = addresses.first;
-        double dist = Geolocator.distanceBetween(
-            currentPosition!.latitude,
-            currentPosition!.longitude,
-            first.coordinates.latitude ?? 40.998,
-            first.coordinates.longitude ?? 22.123);
-        hospitals[i] = [hospitals[i], dist];
+        var data = await GeocoderBuddy.query(query);
+        if (data.isNotEmpty) {
+          log(hospitals[i]["hospital_name"] + "--> done");
+          double lat = double.parse(data[0].lat);
+          double lon = double.parse(data[0].lon);
+          markers.add({
+            "location": LatLng(lat, lon),
+            "name": hospitals[i]["hospital_name"]
+          });
+          setState(() {});
+          double dist = Geolocator.distanceBetween(
+              currentPosition.latitude!, currentPosition.longitude!, lat, lon);
+          newData.add([hospitals[i], dist]);
+        }
       } catch (e) {
-        print(e);
+        print("error-->" + e.toString());
         hospitals[i] = [hospitals[i], 3000.00];
       }
     }
+    hospitals = newData;
+    log(markers.toString());
     sortHospital();
   }
 
   sortHospital() {
-    for (int i = 0; i < hospitals.length; i++) {
-      print(hospitals[i][1]);
-    }
-    print("**************");
     int high = hospitals.length - 1;
     int low = 0;
     hospitals = quickSort(hospitals, low, high);
-    for (int i = 0; i < hospitals.length; i++) {
-      print(hospitals[i][1]);
-    }
   }
 
   List quickSort(List list, int low, int high) {
@@ -148,7 +140,6 @@ class _MainPState extends State<MainP> {
   void initState() {
     super.initState();
     getallhospitals();
-    getCurrentLocation();
   }
 
   @override
@@ -168,7 +159,7 @@ class _MainPState extends State<MainP> {
                 child: Image.asset("assets/aayu16.png")),
             actions: [
               // ignore: deprecated_member_use
-              FlatButton.icon(
+              TextButton.icon(
                   onPressed: () async {
                     Navigator.pushReplacementNamed(context, "Welcome");
                     //if user is not null signout or else pop and go to welcome screen
@@ -195,7 +186,6 @@ class _MainPState extends State<MainP> {
                         contentPadding: EdgeInsets.fromLTRB(8, 0, 8, 0),
                         content: Emergencyform(hospital: hospitals),
                       ));
-              showMarker = true;
               setState(() {});
             },
             child: Icon(Icons.add, color: Colors.lightBlue, size: 30),
@@ -206,15 +196,91 @@ class _MainPState extends State<MainP> {
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
         body: Stack(children: [
-          currentPosition != null
-              ? GoogleMap(
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition:
-                      CameraPosition(target: currentPosition!, zoom: 15),
-                  markers: showMarker ? markers : {},
-                  myLocationEnabled: true,
-                )
-              : SizedBox.shrink(),
+          GetBuilder<LocationServiceController>(
+              init: locationServiceController,
+              builder: (val) {
+                return Container(
+                  child: FlutterMap(
+                    mapController: mapfnx.mapController,
+                    options: MapOptions(
+                      center: LatLng(val.locationData.latitude,
+                          val.locationData.longitude),
+                      zoom: 16,
+                    ),
+                    layers: [
+                      TileLayerOptions(
+                        tms: true,
+                        urlTemplate:
+                            "http://map.gallimap.com/geoserver/gwc/service/tms/1.0.0/GalliMaps%3AGalliMaps@EPSG%3A3857@png/{z}/{x}/{y}.png?authkey=530f1b81-d4f6-4c1f-88a0-c149d350c046",
+                      ),
+                      PolylineLayerOptions(
+                        polylines: [
+                          Polyline(
+                              points: val.points,
+                              strokeWidth: 5,
+                              color: Colors.red)
+                        ],
+                      ),
+                      MarkerLayerOptions(
+                        markers: [
+                          for (int i = 0; i < markers.length; i++)
+                            Marker(
+                                point: LatLng(markers[i]["location"].latitude,
+                                    markers[i]["location"].longitude),
+                                builder: ((context) => Container(
+                                      color: Colors.red,
+                                      width: 54,
+                                      height: 54,
+                                      child: Center(
+                                          child: Text(
+                                        markers[i]["name"],
+                                        style: TextStyle(fontSize: 12),
+                                      )),
+                                    ))),
+                          Marker(
+                              point: LatLng(27.7026, 85.2825),
+                              builder: ((context) => Container(
+                                    width: 20,
+                                    height: 20,
+                                    child: Card(
+                                      color: Colors.blue,
+                                      elevation: 4,
+                                      shape: RoundedRectangleBorder(
+                                          side: BorderSide(
+                                              color: Colors.white, width: 2),
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                      ),
+                                    ),
+                                  )))
+                        ],
+                      ),
+                    ],
+                    nonRotatedChildren: [
+                      Positioned(
+                          bottom: -64,
+                          right: 0,
+                          child: GestureDetector(
+                              onTap: () {
+                                mapfnx.animatedMapMove(
+                                    LatLng(val.locationData.latitude,
+                                        val.locationData.longitude),
+                                    16,
+                                    this,
+                                    mounted);
+                              },
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                color: Colors.red,
+                              )))
+                    ],
+                  ),
+                );
+              }),
           loading
               ? Center(
                   child: Container(
@@ -315,10 +381,12 @@ class _MainPState extends State<MainP> {
                     ),
                   ),
                   onTap: () async {
-                    // _locationData = await location.getLocation();
-                    // print(_locationData);
-                    _mapController.animateCamera(CameraUpdate.newCameraPosition(
-                        CameraPosition(target: currentPosition!, zoom: 15.5)));
+                    mapfnx.animatedMapMove(
+                        LatLng(locationServiceController.locationData.latitude,
+                            locationServiceController.locationData.longitude),
+                        16,
+                        this,
+                        mounted);
                   }))
         ]));
   }

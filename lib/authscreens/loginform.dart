@@ -17,13 +17,13 @@ class _LoginFormState extends State<LoginForm> {
 
   login() async {
     final response = await http.post(
-      Uri.parse('https://call-db-aayu.herokuapp.com/api/appuser/login'),
+      Uri.parse('http://128.199.21.216:9191/api/appuser/login'),
       headers: {
         "Content-Type": "application/json",
       },
       body: jsonEncode({"phone": _phone, "password": _password}),
     );
-    print(response.body);
+    print("xyz " + response.body);
     if (response.statusCode == 200) {
       var serverResponse = response.body;
       if (serverResponse != 5000.toString()) {
@@ -110,7 +110,7 @@ class _LoginFormState extends State<LoginForm> {
                     color: Colors.lightBlue,
                     borderRadius: BorderRadius.circular(15)),
                 // ignore: deprecated_member_use
-                child: FlatButton(
+                child: TextButton(
                     onPressed: login,
                     //shows loading bar when login button is clicked
                     child: loading

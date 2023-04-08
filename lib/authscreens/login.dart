@@ -54,7 +54,7 @@ class _LoginState extends State<Login> {
                   decoration: BoxDecoration(
                       color: color[0], borderRadius: BorderRadius.circular(20)),
                   // ignore: deprecated_member_use
-                  child: FlatButton(
+                  child: TextButton(
                       onPressed: () {
                         setState(() {
                           // changing the state and the colors and size of login and signup cont button
@@ -80,7 +80,7 @@ class _LoginState extends State<Login> {
                   decoration: BoxDecoration(
                       color: color[1], borderRadius: BorderRadius.circular(20)),
                   // ignore: deprecated_member_use
-                  child: FlatButton(
+                  child: TextButton(
                       onPressed: () {
                         setState(() {
                           // changing the state and the colors and size of login and signup cont button
